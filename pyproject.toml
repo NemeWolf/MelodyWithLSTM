@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "melodyusinglstm"
+version = "0.1.0"
+description = "Melody Generation Using RNN-LSTM"
+authors = ["NemeWolf <nehemiasman_8@live.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+librosa = "^0.10.2.post1"
+music21 = "^9.1.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
