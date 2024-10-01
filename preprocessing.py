@@ -1,6 +1,6 @@
 import os
 import music21 as m21
-
+import json
 """
 This script preprocesses the dataset of folk songs in kern format.
 First, load the dataset of folk songs in kern format.
@@ -8,7 +8,8 @@ Second, convert the songs from kern format to music21 score object.
 Third, filter out songs that have non-acceptable durations.
 Fourth, transpose songs to a common key.
 Fifth, encode songs with music time series representation.
-Finally, save the encoded songs to text file.
+Sixth, save the encoded songs to text file.
+Seventh, create a dataset that contains all the encoded songs in a single file.
 """
 
 """
@@ -20,8 +21,12 @@ Enable analysis of music data and generation of music data.
 Usefull for representation of music data
 """
 
-KERN_DATASET_PATH = "G:\\My Drive\\Cursos\\Valerio_Velardo\\Melody_generation_with_RNN-LSTM\\dataset_preprocessing\\deutschl\\test"
-SAVE_DIR = "G:\\My Drive\\Cursos\\Valerio_Velardo\\Melody_generation_with_RNN-LSTM\\dataset"
+KERN_DATASET_PATH = "G:\\Mi unidad\\Cursos\\Valerio_Velardo\\Melody_generation_with_RNN-LSTM\\dataset_preprocessing\\deutschl\\test"
+SAVE_DIR = "G:\\Mi unidad\\Cursos\\Valerio_Velardo\\Melody_generation_with_RNN-LSTM\\dataset"
+SINGE_FILE_DATASET = "G:\\Mi unidad\\Cursos\\Valerio_Velardo\\Melody_generation_with_RNN-LSTM\\file_dataset"
+MAPPINNG_PATH = "G:\\Mi unidad\\Cursos\\Valerio_Velardo\\Melody_generation_with_RNN-LSTM\\mapping.json"
+
+SEQUENCE_LENGTH = 64 # Same amount that LSTM elements that sequences fixed length
 
 # durations are expressed in quarter length
 ACCEPTABLE_DURATIONS = [
@@ -159,18 +164,65 @@ def preprocess(dataset_path):
         
         with open(save_path, "w") as fp:
             fp.write(encoded_song)
-        
-        
-if __name__==  "__main__":
     
-    songs = load_song_in_kern(KERN_DATASET_PATH)
-    print(f"Loaded {len(songs)} songs.")
-    song = songs[0]
+def load(file_path):
+    with open(file_path, "r") as fp:
+        song = fp.read()        
+    return song
+
+def create_single_file_dataset(dataset_path,file_dataset_path, sequence_length):
+    """ Create a file dataset from the dataset in the dataset_path
+    param dataset_path: path to the dataset
+    param file_dataset_path: path to save the file
+    param sequence_length: number of time steps to be consider in each sequence
+    return songs: string that contains all dataset
+    """
     
+    new_song_delimiter = "/ " * sequence_length
+    songs = ""
+    # load encoded songs and add delimeter
+    for path, _, files in os.walk(dataset_path):
+        for file in files:
+            file_path = os.path.join(path, file)
+            song = load(file_path)
+            songs = songs + song + " " + new_song_delimiter
+    
+    songs = songs[:-1]
+    
+    # save string that contains all datasets
+    
+    with open(file_dataset_path, "w") as fp:
+        fp.write(songs)
+        
+    return songs
+    
+def create_mapping(songs, mapping_path):
+    """Creates a json file that maps the symbols in the song dataset onto integers
+
+    :param songs (str): String with all songs
+    :param mapping_path (str): Path where to save mapping
+    :return:
+    """
+    mappings = {}
+    
+    # identify the vocabulary
+    songs = songs.split()
+    vocabulary = list(set(songs))
+    
+    # create mappings (map all symbols to an integer)
+    for i, symbol in enumerate(vocabulary):
+        mappings[symbol] = i   
+    
+    # save vocabulary to JSON file
+    with open(mapping_path, "w") as fp:
+        json.dump(mappings, fp, indent=4)
+    
+def main():
     preprocess(KERN_DATASET_PATH)
-    
-    # transpose song
-    transposed_song = transpose(song)
-    #transposed_song.show()
+    songs = create_single_file_dataset(SAVE_DIR, SINGE_FILE_DATASET, SEQUENCE_LENGTH)
+    create_mapping(songs, MAPPINNG_PATH)
+
+if __name__==  "__main__":
+    main()
     
     
