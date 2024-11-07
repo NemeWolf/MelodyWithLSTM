@@ -1,15 +1,21 @@
 import os
 import music21 as m21
 import json
+import numpy as np
+import tensorflow.keras as keras
 """
 This script preprocesses the dataset of folk songs in kern format.
-First, load the dataset of folk songs in kern format.
-Second, convert the songs from kern format to music21 score object.
-Third, filter out songs that have non-acceptable durations.
-Fourth, transpose songs to a common key.
-Fifth, encode songs with music time series representation.
-Sixth, save the encoded songs to text file.
-Seventh, create a dataset that contains all the encoded songs in a single file.
+
+    First, load the dataset of folk songs in kern format.
+    Second, convert the songs from kern format to music21 score object.
+    Third, filter out songs that have non-acceptable durations.
+    Fourth, transpose songs to a common key.
+    Fifth, encode songs with music time series representation.
+    Sixth, save the encoded songs to text file (file: dataset).
+    Seventh, create a dataset that contains all the encoded songs in a single file (file_dataset).
+    Eighth, create a mapping from symbols to integers (mapping.json).
+    Ninth, convert the songs to sequences of integers.
+    Tenth, generate the training sequences.
 """
 
 """
@@ -21,10 +27,10 @@ Enable analysis of music data and generation of music data.
 Usefull for representation of music data
 """
 
-KERN_DATASET_PATH = "G:\\Mi unidad\\Cursos\\Valerio_Velardo\\Melody_generation_with_RNN-LSTM\\dataset_preprocessing\\deutschl\\test"
-SAVE_DIR = "G:\\Mi unidad\\Cursos\\Valerio_Velardo\\Melody_generation_with_RNN-LSTM\\dataset"
-SINGE_FILE_DATASET = "G:\\Mi unidad\\Cursos\\Valerio_Velardo\\Melody_generation_with_RNN-LSTM\\file_dataset"
-MAPPINNG_PATH = "G:\\Mi unidad\\Cursos\\Valerio_Velardo\\Melody_generation_with_RNN-LSTM\\mapping.json"
+KERN_DATASET_PATH = "G:\\My Drive\\Cursos\\Valerio_Velardo\\Melody_generation_with_RNN-LSTM\\Code\\dataset_preprocessing\\deutschl\\test"
+SAVE_DIR = "G:\\My Drive\\Cursos\\Valerio_Velardo\\Melody_generation_with_RNN-LSTM\\Code\\dataset"
+SINGE_FILE_DATASET = "G:\\My Drive\\Cursos\\Valerio_Velardo\\Melody_generation_with_RNN-LSTM\\Code\\file_dataset"
+MAPPINNG_PATH = "G:\\My Drive\\Cursos\\Valerio_Velardo\\Melody_generation_with_RNN-LSTM\\Code\\mapping.json"
 
 SEQUENCE_LENGTH = 64 # Same amount that LSTM elements that sequences fixed length
 
@@ -41,7 +47,7 @@ ACCEPTABLE_DURATIONS = [
 ]
 
 def load_song_in_kern(dataset_path):
-    """Loads all kern pieces in dataset using music21.
+    """Loads all kdataset using music21.
 
     :param dataset_path (str): Path to dataset
     :return songs (list of m21 streams): List containing all pieces
@@ -65,7 +71,7 @@ def has_acceptable_durations(song, acceptable_durations):
     return: bool
     """
     
-    # note.flatten().notesAndRests: flaten the song structure and get all the notes and rests in a list
+    # note.flatten().notesAndRests: flatten the song structure and get all the notes and rests in a list
     for note in song.flatten().notesAndRests:
         
         # note.duration.quarterLenght: get the duration of the note in terms of number of quarter notes
@@ -147,14 +153,15 @@ def preprocess(dataset_path):
     songs = load_song_in_kern(KERN_DATASET_PATH)
     print(f"Loaded {len(songs)} songs.")
     
+    # process each song in the dataset
     for i, song in enumerate(songs):
         
         # filter out songs that have non-aceptable duration
         if not has_acceptable_durations(song, ACCEPTABLE_DURATIONS):
-            continue
+          continue
         
         # transpose song to cmaj/Amin
-        song = transpose(song)
+          song = transpose(song)
         
         # encode songs with music time series representation
         encoded_song = encode_song(song)
@@ -164,11 +171,12 @@ def preprocess(dataset_path):
         
         with open(save_path, "w") as fp:
             fp.write(encoded_song)
-    
+
 def load(file_path):
     with open(file_path, "r") as fp:
-        song = fp.read()        
+        song = fp.read() 
     return song
+
 
 def create_single_file_dataset(dataset_path,file_dataset_path, sequence_length):
     """ Create a file dataset from the dataset in the dataset_path
@@ -183,8 +191,8 @@ def create_single_file_dataset(dataset_path,file_dataset_path, sequence_length):
     # load encoded songs and add delimeter
     for path, _, files in os.walk(dataset_path):
         for file in files:
-            file_path = os.path.join(path, file)
-            song = load(file_path)
+            file_path = os.path.join(path, file)            
+            song = load(file_path)                
             songs = songs + song + " " + new_song_delimiter
     
     songs = songs[:-1]
@@ -192,12 +200,12 @@ def create_single_file_dataset(dataset_path,file_dataset_path, sequence_length):
     # save string that contains all datasets
     
     with open(file_dataset_path, "w") as fp:
-        fp.write(songs)
-        
+        fp.write(songs)        
     return songs
     
 def create_mapping(songs, mapping_path):
     """Creates a json file that maps the symbols in the song dataset onto integers
+    (dictionary)
 
     :param songs (str): String with all songs
     :param mapping_path (str): Path where to save mapping
@@ -216,11 +224,66 @@ def create_mapping(songs, mapping_path):
     # save vocabulary to JSON file
     with open(mapping_path, "w") as fp:
         json.dump(mappings, fp, indent=4)
+        
+def convert_songs_to_int(songs):
+    """Convert songs to a sequence of integers
+    param songs: string with all songs
+    return int_songs: list of int
+    """
+    int_songs = []
+
+    # load mappings
+    with open(MAPPINNG_PATH, "r") as fp:
+        mappings = json.load(fp)
+        
+    # cast string to list
+    songs = songs.split()
+
+    # map the songs to int    
+    for symbol in songs:
+        int_songs.append(mappings[symbol])
+                
+    return int_songs
+
+def generate_training_sequences(sequence_length):
+    """ Create training sequences
+    param sequence_length: number of time steps to be consider in each sequence
+    return inputs, targets: list of input and target sequences
+    """
+    # [11, 12, 13, 14, ...] -> i: 0, i: [11, 12], t: 13; i: [12, 13], t: 14
+    
+    # load the songs and map them to int
+    songs = load(SINGE_FILE_DATASET)
+    int_songs = convert_songs_to_int(songs) 
+    
+    # generate the training sequences    
+    # 100 symbols, sequence_length = 64 --> 100 - 64 = 36 training sequences
+    inputs = []
+    targets = []
+    
+    num_sequences = len(int_songs) - sequence_length
+    for i in range(num_sequences):
+                
+        inputs.append(int_songs[i:i+sequence_length]) # 0:64 -> [0, 1, 2, ..., 63]
+        targets.append(int_songs[i+sequence_length])  # 64
+    
+    # one hot encode the sequences
+    
+    # inputs: (num_sequences, sequence_length, vocabulary size)
+    # [ [0, 1, 2], [1, 1, 2] ] -> [ [ [1, 0, 0], [0, 1, 0], [0, 0, 1] ] , [] ]
+    # one hot encode use a number of classes equal to the vocabulary size     
+    vocabulary_size = len(set(int_songs))    
+    inputs = keras.utils.to_categorical(inputs, num_classes=vocabulary_size)
+    targets = np.array(targets) 
+        
+    return inputs, targets        
     
 def main():
     preprocess(KERN_DATASET_PATH)
     songs = create_single_file_dataset(SAVE_DIR, SINGE_FILE_DATASET, SEQUENCE_LENGTH)
     create_mapping(songs, MAPPINNG_PATH)
+    inputs, targets = generate_training_sequences(SEQUENCE_LENGTH)
+    a = 1
 
 if __name__==  "__main__":
     main()
