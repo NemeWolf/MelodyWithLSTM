@@ -15,7 +15,7 @@ This script preprocesses the dataset of folk songs in kern format.
     Seventh, create a dataset that contains all the encoded songs in a single file (file_dataset).
     Eighth, create a mapping from symbols to integers (mapping.json).
     Ninth, convert the songs to sequences of integers.
-    Tenth, generate the training sequences.
+    Tenth, generate the training sequences in one-hot encoded format.
 """
 
 """
@@ -27,10 +27,10 @@ Enable analysis of music data and generation of music data.
 Usefull for representation of music data
 """
 
-KERN_DATASET_PATH = "G:\\My Drive\\Cursos\\Valerio_Velardo\\Melody_generation_with_RNN-LSTM\\Code\\dataset_preprocessing\\deutschl\\test"
+KERN_DATASET_PATH = "G:\\My Drive\\Cursos\\Valerio_Velardo\\Melody_generation_with_RNN-LSTM\\Code\\dataset_preprocessing\\deutschl\\erk"
 SAVE_DIR = "G:\\My Drive\\Cursos\\Valerio_Velardo\\Melody_generation_with_RNN-LSTM\\Code\\dataset"
 SINGE_FILE_DATASET = "G:\\My Drive\\Cursos\\Valerio_Velardo\\Melody_generation_with_RNN-LSTM\\Code\\file_dataset"
-MAPPINNG_PATH = "G:\\My Drive\\Cursos\\Valerio_Velardo\\Melody_generation_with_RNN-LSTM\\Code\\mapping.json"
+MAPPING_PATH = "G:\\My Drive\\Cursos\\Valerio_Velardo\\Melody_generation_with_RNN-LSTM\\Code\\mapping.json"
 
 SEQUENCE_LENGTH = 64 # Same amount that LSTM elements that sequences fixed length
 
@@ -273,17 +273,16 @@ def generate_training_sequences(sequence_length):
     # [ [0, 1, 2], [1, 1, 2] ] -> [ [ [1, 0, 0], [0, 1, 0], [0, 0, 1] ] , [] ]
     # one hot encode use a number of classes equal to the vocabulary size     
     vocabulary_size = len(set(int_songs))    
-    inputs = keras.utils.to_categorical(inputs, num_classes=vocabulary_size)
-    targets = np.array(targets) 
-        
+    inputs = keras.utils.to_categorical(inputs, num_classes=vocabulary_size) # (362402, 64, 41) --> 362402 sequences, 64 time steps, 41 notes
+    targets = np.array(targets) # (2512,) --> 2512 predictions
+    
     return inputs, targets        
     
 def main():
     preprocess(KERN_DATASET_PATH)
     songs = create_single_file_dataset(SAVE_DIR, SINGE_FILE_DATASET, SEQUENCE_LENGTH)
-    create_mapping(songs, MAPPINNG_PATH)
+    create_mapping(songs, MAPPING_PATH)
     inputs, targets = generate_training_sequences(SEQUENCE_LENGTH)
-    a = 1
 
 if __name__==  "__main__":
     main()
