@@ -233,7 +233,7 @@ def convert_songs_to_int(songs):
     int_songs = []
 
     # load mappings
-    with open(MAPPINNG_PATH, "r") as fp:
+    with open(MAPPING_PATH, "r") as fp:
         mappings = json.load(fp)
         
     # cast string to list
@@ -272,8 +272,8 @@ def generate_training_sequences(sequence_length):
     # inputs: (num_sequences, sequence_length, vocabulary size)
     # [ [0, 1, 2], [1, 1, 2] ] -> [ [ [1, 0, 0], [0, 1, 0], [0, 0, 1] ] , [] ]
     # one hot encode use a number of classes equal to the vocabulary size     
-    vocabulary_size = len(set(int_songs))    
-    inputs = keras.utils.to_categorical(inputs, num_classes=vocabulary_size) # (362402, 64, 41) --> 362402 sequences, 64 time steps, 41 notes
+    vocabulary_size = len(set(int_songs))
+    inputs = keras.utils.to_categorical(inputs, num_classes=vocabulary_size) # (362402, 64, 40) --> 362402 sequences, 64 time steps, 41 notes
     targets = np.array(targets) # (2512,) --> 2512 predictions
     
     return inputs, targets        

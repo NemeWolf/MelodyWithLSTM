@@ -2,7 +2,7 @@ import tensorflow.keras as keras
 from preprocessing import generate_training_sequences, SEQUENCE_LENGTH # importa metodo de preprocesamiento y la longitud de la secuencia
 
 # Hyperparameters
-OUTPU_UNIT = 41 # cantidad de neuronas en la capa de salida (en este caso cantidad de notas musicales)
+OUTPUT_UNIT = 41 # cantidad de neuronas en la capa de salida (en este caso cantidad de notas musicales)
 NUM_UNITS = [256] # cantidad de neuronas en la capa oculta (es una lista porque se pueden agregar mas capas ocultas) [256, 256]
 LOSS = "sparse_categorical_crossentropy" # funcion de perdida
 LEARNING_RATE = 0.001   # tasa de aprendizaje
@@ -53,7 +53,7 @@ def build_model(output_units, num_units, loss, learning_rate):
     
     return model
 
-def train(output_units=OUTPU_UNIT, num_units=NUM_UNITS, loss=LOSS, learning_rate=LEARNING_RATE):
+def train(output_units=OUTPUT_UNIT, num_units=NUM_UNITS, loss=LOSS, learning_rate=LEARNING_RATE):
     """Train and save TF model.
 
     :param output_units (int): Num output units
@@ -65,7 +65,7 @@ def train(output_units=OUTPU_UNIT, num_units=NUM_UNITS, loss=LOSS, learning_rate
     # generate the training sequences
     inputs, targets = generate_training_sequences(SEQUENCE_LENGTH) # input -> (362402, 64, 41), target -> (362402, 41)
     # lo ideal para los datos es dividirlos en 3 conjuntos: entrenamiento, validacion y test
-    
+    print(f"La dimension de los datos de entrada son: {inputs.shape}\nY la dimension de los datos de salida son: {targets.shape}")
     # build the network
     model = build_model(output_units, num_units, loss, learning_rate) 
     # (neuronas en la capa de salida, neuronas en la capa oculta, funcion de perdida, tasa de aprendizaje)
